@@ -51,6 +51,39 @@ public class LaborerController extends HttpServlet {
         res.getWriter().write("{\"message\": \"Lưu thành công!\"}");
     }
 
+    // Cập nhật (PUT) - /api/laborers?id=1
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse res) throws IOException {
+        DataConverter dataConverter = resolveConverter(req);
+
+        String idParam = req.getParameter("id");
+        if (idParam == null || idParam.isBlank()) {
+            res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            res.setContentType(resolveContentType(req));
+            res.getWriter().write("{\"message\": \"Thiếu tham số id!\"}");
+            return;
+        }
+
+        String requestData = req.getReader().lines().collect(Collectors.joining());
+        Laborer laborer = dataConverter.parse(requestData);
+        if (laborer == null) {
+            res.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            res.setContentType(resolveContentType(req));
+            res.getWriter().write("{\"message\": \"Dữ liệu không hợp lệ!\"}");
+            return;
+        }
+
+        laborer.setId(Integer.parseInt(idParam));
+
+        // Reuse AddLaborerCommand because Hibernate save() uses merge => update if id exists
+        Command updateCmd = new AddLaborerCommand(laborer);
+        laborerService.executeCommand(updateCmd);
+
+        res.setStatus(HttpServletResponse.SC_OK);
+        res.setContentType(resolveContentType(req));
+        res.getWriter().write("{\"message\": \"Cập nhật thành công!\"}");
+    }
+
     // Xóa (DELETE) - /api/laborers?id=1
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse res) throws IOException {
